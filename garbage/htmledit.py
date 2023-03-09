@@ -1,50 +1,180 @@
-import os
+
+from __future__ import absolute_import
+
+import signal, os, time, sys, codecs
+
 import gi
-
 gi.require_version("Gtk", "3.0")
-gi.require_version('WebKit2', '4.0')
-from gi.repository import Gtk, Gdk, WebKit2
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GLib
+from gi.repository import GObject
+from gi.repository import Pango
+from gi.repository import GObject
 
-class HtmlEditor(Gtk.Window):
+gi.require_version('PangoCairo', '1.0')
+from gi.repository import PangoCairo
+
+gi.require_version('WebKit2', '4.0')
+from gi.repository import WebKit2
+
+import cairo
+
+
+# ------------------------------------------------------------------------
+
+class HtmlEditor(Gtk.Widget):
+
+    #def __init__(self, args = None, kwds = None):
+    #    super().__init__(*args, **kwds)
+
     def __init__(self):
         super().__init__()
 
-class HtmlEditor(Gtk.Window):
-        self.set_title("Html Editor")
-        self.connect("destroy", Gtk.main_quit)
-        self.resize(500, 500)
-        self.filename = None
+        self.state = 0; self.stat2 = 0
+
+        #self.set_title("Html Editor")
+        #self.connect("destroy", Gtk.main_quit)
+        #self.resize(500, 500)
+        #self.filename = None
+
+        self.set_can_focus(True)
+        self.set_can_default(True)
+        self.set_sensitive(True)
 
         self.editor = WebKit2.WebView()
         self.editor.set_editable(True)
         self.editor.load_html("", "file:///")
+        #self.present()
 
-        self.scroll = Gtk.ScrolledWindow()
-        self.scroll.add(self.editor)
-        self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+
+        #overlay
+
+        #self.editor.set_size_request(300, 300)
+        #self.editor.set_can_focus(True)
+        #self.editor.set_can_default(True)
+        #self.editor.set_sensitive(True)
+
+        #self.scroll = Gtk.ScrolledWindow()
+        #self.scroll.add(self.editor)
+        #self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
 
         self.ui = self.generate_ui()
-        self.add_accel_group(self.ui.get_accel_group())
+        #self.add_accel_group(self.ui.get_accel_group())
         self.toolbar1 = self.ui.get_widget("/toolbar_main")
         self.toolbar2 = self.ui.get_widget("/toolbar_format")
         self.menubar = self.ui.get_widget("/menubar_main")
 
-        self.layout = Gtk.VBox()
-        self.layout.pack_start(self.menubar, False, False, 0)
-        self.layout.pack_start(self.toolbar1, False, False, 0)
-        self.layout.pack_start(self.toolbar2, False, False, 0)
-        self.layout.pack_start(self.scroll, True, True, 0)
-        self.add(self.layout)
-
-        #self.layout.pack_start(self.editor.get_inspector(), True, True, 0)
-        #self.inspect = WebKit2.WebInspector()
-        #self.inspect.attach()
-        #self.editor.get_inspector().attach()
-
-        self.editor.get_settings().set_property("enable_developer_extras", True)
+        #self.layout = Gtk.VBox()
+        #self.layout.pack_start(self.menubar, False, False, 0)
+        #self.layout.pack_start(self.toolbar1, False, False, 0)
+        #self.layout.pack_start(self.toolbar2, False, False, 0)
+        #self.layout.pack_start(self.scroll, True, True, 0)
+        ##self.add(self.layout)
+        #
+        ##self.layout.pack_start(self.editor.get_inspector(), True, True, 0)
+        ##self.inspect = WebKit2.WebInspector()
+        ##self.inspect.attach()
+        ##self.editor.get_inspector().attach()
+        #
+        #self.editor.get_settings().set_property("enable_developer_extras", True)
         #self.editor.get_inspector().set_property("height", 200)
         #self.editor.get_inspector().show()
         #print("hhh", self.editor.get_inspector().get_attached_height())
+        #self.editor.show_all()
+
+    def do_draw(self, cr):
+
+        # paint background
+        if 1: #self.stat2:
+            bg_color2 = self.get_style_context().get_background_color(Gtk.StateFlags.NORMAL)
+            #print(bg_color2)
+            #bg_color = Gdk.RGBA(bg_color2.red-0.1, bg_color2.green-0.1, bg_color2.blue -0.1)
+            #bg_color = self.get_style_context().get_background_color(Gtk.StateFlags.NORMAL)
+
+            bg_color = Gdk.RGBA(.9, .9, .9)
+            #print(bg_color)
+        else:
+            bg_color = self.get_style_context().get_background_color(Gtk.StateFlags.NORMAL)
+
+        cr.rectangle(10, 10, 64, 64)
+        cr.set_source_rgba(1., 0., 0.)
+        cr.fill()
+
+        cr.set_source_rgba(*list(bg_color))
+        #cr.paint()
+
+        #sss = self.get_state()
+        #if sss ==  Gtk.StateFlags.SELECTED:
+
+        if 0: #self.stat2:
+            fg_color = self.get_style_context().get_color(Gtk.StateFlags.SELECTED)
+        else:
+            fg_color = self.get_style_context().get_color(Gtk.StateFlags.NORMAL)
+
+        #print(fg_color)
+
+        # draw a diagonal line
+        allocation = self.get_allocation()
+        cr.set_source_rgba(*list(fg_color));
+        cr.move_to(10, 10)
+        #cr.line_to(100, 100)
+        cr.line_to(allocation.width-10, allocation.height-10)
+
+        #PangoCairo.show_layout(cr, self.layout)
+
+        #if self.state:
+        #    cr.move_to(1, 1)
+        #    PangoCairo.show_layout(cr, self.layout)
+        cr.stroke()
+
+        #self.queue_draw()
+
+        #self.editor.do_draw(self.editor, cr)
+
+        #super().do_draw.invoke(Gtk.VBox, self, *args, **kwargs)
+        #self.editor.do_draw(self.editor, cr)
+        WebKit2.WebView.do_draw(self, cr)
+
+        #self.layout.do_draw(self.layout, cr)
+        #return True
+
+    def do_realize(self):
+        allocation = self.get_allocation()
+        attr = Gdk.WindowAttr()
+        attr.window_type = Gdk.WindowType.CHILD
+        attr.x = allocation.x
+        attr.y = allocation.y
+        attr.width = allocation.width
+        attr.height = allocation.height
+        attr.visual = self.get_visual()
+        attr.event_mask = self.get_events() | Gdk.EventMask.EXPOSURE_MASK
+        WAT = Gdk.WindowAttributesType
+        mask = WAT.X | WAT.Y | WAT.VISUAL
+        window = Gdk.Window(self.get_parent_window(), attr, mask);
+        self.set_window(window)
+        self.register_window(window)
+        self.set_realized(True)
+        window.set_background_pattern(None)
+
+
+    def  event_release(self, arg1, arg2):
+        #print("widget release", arg1, arg2)
+        #self.set_state(Gtk.StateFlags.NORMAL)
+        self.state = 0
+        self.queue_draw()
+        xx, yy =  self.get_pointer()
+        rrr = self.get_allocation()
+        #print(xx, yy, "vvv", rrr.x, rrr.y, rrr.width, rrr.height)
+
+        # If release was outside, cancel action
+        if xx < 0 or xx > rrr.width:
+            #print("xx over")
+            return
+        if yy < 0 or yy > rrr.height:
+            #print("yy over")
+            return
+        self.eventx(arg1, arg2)
 
     def generate_ui(self):
         ui_def = """

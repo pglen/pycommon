@@ -10,6 +10,7 @@ from Crypto.Hash import SHA512
 
 import pypacker
 
+
 # ------------------------------------------------------------------------
 # Test harness
 
@@ -27,8 +28,8 @@ if __name__ == '__main__':
 
     #sorg_var = [xorg , xorg]
     #sorg_var = [ zorg, yorg ]
-    #sorg_var = [ 334, "subx", 'x', xorg, yorg]
-    sorg_var  = [ "begin", 334, "subx", 'x', xorg, yorg, zorg, "end"]
+    sorg_var = [ 334, "subx", 'x', xorg, yorg]
+    #sorg_var  = [ 334, "subx", 'x', xorg, zorg]
     #sorg_var = "hello string"
 
     if pb.verbose > 2:

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+''' This encapsulates the webkit '''
+
 import os, sys, getopt, signal, random, time, warnings
 import inspect
 
@@ -9,6 +11,7 @@ sys.path.append(realinc)
 from pgutils import  *
 from pggui import  *
 from pgsimp import  *
+from pgtextview import  *
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -43,17 +46,17 @@ except:
 
 class pgwebw(WebKit2.WebView):
 
-    def __init__(self, editable=None, xlink=None):
+    def __init__(self, xlink=None):
         try:
-            #GObject.GObject.__init__(self)
-            super(pgwebw, self).__init__();
+            GObject.GObject.__init__(self)
         except:
             print("Cannot ??? in parent object", sys.exc_info())
             pass
         self.xlink = xlink
+        self.set_editable(True)
 
-        if editable:
-            self.set_editable(True)
+        #if editable:
+        #    self.set_editable(True)
 
         self.filename = ""
         self.load_html("", "file:///")
@@ -84,23 +87,59 @@ class pgwebw(WebKit2.WebView):
             self.xlink.status.set_text("Failed: " + failing_uri[:64])
 
     def on_action(self, action):
-        print("on_action", action.get_name())
-
-        self.editor.run_javascript("document.execCommand('%s', false, false);" % action.get_name())
+        #print("on_action", action.get_name())
+        self.run_javascript("document.execCommand('%s', false, false);" % action.get_name())
 
     def on_paste(self, action):
-        self.editor.execute_editing_command(WebKit2.EDITING_COMMAND_PASTE)
+        self.execute_editing_command(WebKit2.EDITING_COMMAND_PASTE)
 
     def on_new(self, action):
-        self.editor.load_html("", "file:///")
+        self.load_html("", "file:///")
+
+    def on_fontsize(self, action):
+        print("on_fontsize")
+        c = Gtk.Clipboard.get(Gdk.SELECTION_PRIMARY)
+        sel = c.wait_for_targets()
+        #print("sel", sel)
+        target = Gdk.Atom.intern ("text/plain", True);
+        ccc = c.wait_for_contents(target)
+        ddd = ccc.get_data().decode()
+        #print("ddd", ddd)
+        sizex = sizedialog(ddd)
+        if sizex:
+            #print("sizex", sizex)
+            htmlx = "<div style=font-size:%dpx;>%s</div>" % (int(sizex), ddd)
+            print("htmlx", htmlx)
+            self.run_javascript("document.execCommand('insertHTML', null, '%s');" % htmlx)
+            #self.run_javascript("document.execCommand('insertText', null, '%s');" % htmlx)
+
+        #for aa in sel[1]:
+        #    try:
+        #        print(aa.name())
+        #        ccc = c.wait_for_contents(aa)
+        #        print("ccc", ccc.get_data())
+        #    except:
+        #        pass
+
+        #sel = Gtk.TextBuffer()
+        #c.wait_is_rich_text_available(sel)
+        #print("sel", sel.get_text(sel.get_start_iter(), sel.get_end_iter(), 0))
+
+        #sel = self.run_javascript("document.getSelection();")
+        #def completion(comp, user_data):
+        #    print("sel=", comp)
+        #    sel = comp
+        #self.get_sel(completion, None)
 
     def on_select_font(self, action):
         dialog = Gtk.FontChooserDialog("Select a font")
         if dialog.run() == Gtk.ResponseType.OK:
             fname = dialog.get_font_desc().get_family()
-            fsize = dialog.get_font_desc().get_size()
-            self.editor.run_javascript("document.execCommand('fontname', null, '%s');" % fname)
-            self.editor.run_javascript("document.execCommand('fontsize', null, '%s');" % fsize)
+            fsize = dialog.get_font_desc().get_size() / Pango.SCALE
+            ttt = int(1 + round(fsize / 10)) % 9
+            print("Setting font", fname, fsize, ttt)
+            self.run_javascript("document.execCommand('fontname', null, '%s');" % fname)
+            self.run_javascript("document.execCommand('fontsize', null, '%s');" % ttt)
         dialog.destroy()
 
     def on_select_color(self, action):
@@ -112,15 +151,57 @@ class pgwebw(WebKit2.WebView):
                 int(g * 255),
                 int(b * 255),
                 int(a * 255))
-            self.editor.run_javascript("document.execCommand('forecolor', null, '%s');" % color)
+            self.run_javascript("document.execCommand('forecolor', null, '%s');" % color)
         dialog.destroy()
 
+    def on_select_bgcolor(self, action):
+        dialog = Gtk.ColorChooserDialog("Select Background Color")
+        if dialog.run() == Gtk.ResponseType.OK:
+            (r, g, b, a) = dialog.get_rgba()
+            color = "#%0.2x%0.2x%0.2x%0.2x" % (
+                int(r * 255),
+                int(g * 255),
+                int(b * 255),
+                int(a * 255))
+            self.run_javascript("document.execCommand('backcolor', null, '%s');" % color)
+        dialog.destroy()
+
+    def on_edit_marker(self, action):
+        print("on_edit_marker", action.get_name())
+
+        c = Gtk.Clipboard.get(Gdk.SELECTION_PRIMARY)
+        sel = c.wait_for_targets()
+        target = Gdk.Atom.intern ("text/html", True);
+        ccc = c.wait_for_contents(target)
+        print("sel", ccc.get_data())
+        #ccc.free()
+        htmlx = markdialog(ccc.get_data().decode())
+        if htmlx:
+            print("markdialog result:\n", htmlx)
+            self.run_javascript("document.execCommand('insertHTML', null, '%s');" % htmlx)
+
+    def on_insert_table(self, action):
+        htmlx = "<table align=center border=0 contentEditable=true>" + \
+                "<tr><td>TR1 C1 <td>| TR1 C2 <tr><td>TR2 C1<td>| TR2 C1</table><br>"
+
+        #print("table", htmlx)
+        self.run_javascript("document.execCommand('insertHTML', null, '%s');" % htmlx)
+
+        #self.run_javascript("document.execCommand('insertHorizontalRule', null, null);")
+
     def on_insert_link(self, action):
-        dialog = Gtk.Dialog("Enter a URL:", self, 0,
+        dialog = Gtk.Dialog("   Enter a URL:   ", None, 0,
         (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK))
 
         entry = Gtk.Entry()
-        dialog.vbox.pack_start(entry, False, False, 0)
+        dialog.vbox.pack_start(Gtk.Label(" a "), False, False, 0)
+        hbox = Gtk.HBox()
+        hbox.pack_start(Gtk.Label(" x "), False, False, 0)
+        hbox.pack_start(entry, False, False, 0)
+        hbox.pack_start(Gtk.Label(" y "), False, False, 0)
+        dialog.vbox.pack_start(hbox, False, False, 0)
+
+        dialog.vbox.pack_start(Gtk.Label(" b "), False, False, 0)
         dialog.show_all()
 
         if dialog.run() == Gtk.ResponseType.OK:
@@ -129,13 +210,13 @@ class pgwebw(WebKit2.WebView):
         dialog.destroy()
 
     def on_insert_image(self, action):
-        dialog = Gtk.FileChooserDialog("Select an image file", self, Gtk.FileChooserAction.OPEN,
+        dialog = Gtk.FileChooserDialog("Select an image file", None, Gtk.FileChooserAction.OPEN,
         (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
 
         if dialog.run() == Gtk.ResponseType.OK:
             fn = dialog.get_filename()
             if os.path.exists(fn):
-                self.editor.run_javascript(
+                self.run_javascript(
                 "document.execCommand('insertImage', null, '%s');" % fn)
         dialog.destroy()
 
@@ -148,7 +229,7 @@ class pgwebw(WebKit2.WebView):
             if os.path.exists(fn):
                 self.filename = fn
                 with open(fn) as fd:
-                    self.editor.load_html(fd.read(), "file:///")
+                    self.load_html(fd.read(), "file:///")
         dialog.destroy()
 
     def on_save(self, action):
@@ -172,14 +253,19 @@ class pgwebw(WebKit2.WebView):
             dialog.destroy()
 
     def get_html(self, completion_function, user_data):
+
+        #print("get_html")
         def javascript_completion(obj, result, user_data):
-            html = self.editor.get_title()
+            #print("javascript_completion", result)
+            fin = self.run_javascript_finish(result)
+            #print("fin", fin)
+            html = fin.get_js_value().to_string()
+            #print("html", html, "\n")
             completion_function(html, user_data)
-        self.editor.run_javascript("document.title=document.documentElement.innerHTML;",
+        self.run_javascript("document.title=document.documentElement.innerHTML;",
                                    None,
                                    javascript_completion,
                                    user_data)
-
 
 # This is kicked in if  there is no
 
@@ -196,8 +282,6 @@ class pgwebw_fake(Gtk.VBox):
 class   HtmlEdit(Gtk.VBox):
 
     def __init__(self, editable = False, statsetter = None):
-
-        super(HtmlEdit, self).__init__();
 
         self.statsetter = statsetter
         self.editable = editable
@@ -286,68 +370,45 @@ class   HtmlEdit(Gtk.VBox):
 
         return hbox3
 
-
 def generate_ui(self):
+
+    ''' define toolbar items here '''
+
     ui_def = """
     <ui>
-    <menubar name="menubar_main">
-        <menu action="menuFile">
-        <menuitem action="new" />
-        <menuitem action="open" />
-        <menuitem action="save" />
-        </menu>
-        <menu action="menuEdit">
-        <menuitem action="cut" />
-        <menuitem action="copy" />
-        <menuitem action="paste" />
-        </menu>
-        <menu action="menuInsert">
-        <menuitem action="insertimage" />
-        </menu>
-        <menu action="menuFormat">
-        <menuitem action="bold" />
-        <menuitem action="italic" />
-        <menuitem action="underline" />
-        <menuitem action="strikethrough" />
-        <separator />
-        <menuitem action="font" />
-        <menuitem action="color" />
-        <separator />
-        <menuitem action="justifyleft" />
-        <menuitem action="justifyright" />
-        <menuitem action="justifycenter" />
-        <menuitem action="justifyfull" />
-        </menu>
-    </menubar>
-    <toolbar name="toolbar_main">
-        <toolitem action="new" />
-        <toolitem action="open" />
-        <toolitem action="save" />
-        <separator />
-        <toolitem action="undo" />
-        <toolitem action="redo" />
-        <separator />
-        <toolitem action="cut" />
-        <toolitem action="copy" />
-        <toolitem action="paste" />
-    </toolbar>
-    <toolbar name="toolbar_format">
-        <toolitem action="bold" />
-        <toolitem action="italic" />
-        <toolitem action="underline" />
-        <toolitem action="strikethrough" />
-        <separator />
-        <toolitem action="font" />
-        <toolitem action="color" />
-        <separator />
-        <toolitem action="justifyleft" />
-        <toolitem action="justifyright" />
-        <toolitem action="justifycenter" />
-        <toolitem action="justifyfull" />
-        <separator />
-        <toolitem action="insertimage" />
-        <toolitem action="insertlink" />
-    </toolbar>
+        <toolbar name="toolbar_format">
+            <toolitem action="new" />
+            <toolitem action="open" />
+            <toolitem action="save" />
+            <separator />
+            <toolitem action="undo" />
+            <toolitem action="redo" />
+            <separator />
+            <toolitem action="cut" />
+            <toolitem action="copy" />
+            <toolitem action="paste" />
+            <separator />
+            <toolitem action="removeformat" />
+            <toolitem action="bold" />
+            <toolitem action="italic" />
+            <toolitem action="underline" />
+            <toolitem action="strikethrough" />
+            <separator />
+            <toolitem action="font" />
+            <toolitem action="fontsize" />
+            <toolitem action="color" />
+            <toolitem action="backgroundcolor" />
+            <separator />
+            <toolitem action="justifyleft" />
+            <toolitem action="justifyright" />
+            <toolitem action="justifycenter" />
+            <toolitem action="justifyfull" />
+            <separator />
+            <toolitem action="insertimage" />
+            <toolitem action="insertlink" />
+            <toolitem action="inserttable" />
+            <toolitem action="editmarker" />
+        </toolbar>
     </ui>
     """
 
@@ -362,19 +423,22 @@ def generate_ui(self):
     ("open", Gtk.STOCK_OPEN, "_Open", None, None, self.on_open),
     ("save", Gtk.STOCK_SAVE, "_Save", None, None, self.on_save),
 
-    ("undo", Gtk.STOCK_UNDO, "_Undo", None, None, self.on_action),
+    ("undo", Gtk.STOCK_UNDO, "_Undo", "<ctrl>Z", None, self.on_action),
     ("redo", Gtk.STOCK_REDO, "_Redo", None, None, self.on_action),
 
     ("cut", Gtk.STOCK_CUT, "_Cut", None, None, self.on_action),
     ("copy", Gtk.STOCK_COPY, "_Copy", None, None, self.on_action),
     ("paste", Gtk.STOCK_PASTE, "_Paste", None, None, self.on_paste),
 
+    ("removeformat", Gtk.STOCK_PROPERTIES, "_removeFormat", "<ctrl>M", None, self.on_action),
     ("bold", Gtk.STOCK_BOLD, "_Bold", "<ctrl>B", None, self.on_action),
     ("italic", Gtk.STOCK_ITALIC, "_Italic", "<ctrl>I", None, self.on_action),
     ("underline", Gtk.STOCK_UNDERLINE, "_Underline", "<ctrl>U", None, self.on_action),
     ("strikethrough", Gtk.STOCK_STRIKETHROUGH, "_Strike", "<ctrl>T", None, self.on_action),
     ("font", Gtk.STOCK_SELECT_FONT, "Select _Font", "<ctrl>F", None, self.on_select_font),
+    ("fontsize", None, "Select _Font", "<ctrl>F", None, self.on_fontsize),
     ("color", Gtk.STOCK_SELECT_COLOR, "Select _Color", None, None, self.on_select_color),
+    ("backgroundcolor", Gtk.STOCK_COLOR_PICKER, "Select Back Color", None, None, self.on_select_bgcolor),
 
     ("justifyleft", Gtk.STOCK_JUSTIFY_LEFT, "Justify _Left", None, None, self.on_action),
     ("justifyright", Gtk.STOCK_JUSTIFY_RIGHT, "Justify _Right", None, None, self.on_action),
@@ -383,14 +447,152 @@ def generate_ui(self):
 
     ("insertimage", "insert-image", "Insert _Image", None, None, self.on_insert_image),
     ("insertlink", "insert-link", "Insert _Link", None, None, self.on_insert_link),
+    ("inserttable", "insert-table", "Insert _Table", None, None, self.on_insert_table),
+    ("editmarker", "edit-marker", "edit _Marker", None, None, self.on_edit_marker),
     ])
 
     actions.get_action("insertimage").set_property("icon-name", "insert-image")
     actions.get_action("insertlink").set_property("icon-name", "insert-link")
+    actions.get_action("inserttable").set_property("icon-name", "appointment-new")
+    actions.get_action("editmarker").set_property("icon-name", "text-editor")
+    actions.get_action("fontsize").set_property("icon-name", "preferences-desktop-font")
+    actions.get_action("removeformat").set_property("icon-name", "text-direction")
 
     ui = Gtk.UIManager()
     ui.insert_action_group(actions)
     ui.add_ui_from_string(ui_def)
+
+    #xxx = ui.get_toplevels(Gtk.UIManagerItemType.MENUBAR)
+    xxx = ui.get_action_groups()[0].list_actions()
+    for aa in xxx:
+        nnn = aa.get_name()
+        #print(nnn, aa.get_accel_path())
+        aa.set_tooltip(nnn)
+
     return ui
+
+
+def markdialog(sss):
+
+    spaceneed = 64
+    # Wrap tesxt if long
+    ssss = ""
+    cnt = 0; fff = 0
+    for aa in sss:
+        if cnt > spaceneed:
+            fff = 1
+        if fff and aa.isspace():
+            cnt = 0; fff = 0
+            ssss += "\n"
+        ssss += aa
+        cnt += 1
+
+    dialog = Gtk.Dialog("   Edit markup   ", None, 0,
+    (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK))
+
+    textview = Gtk.TextView()
+    textview.set_editable(True)
+
+    textbuffer = textview.get_buffer()
+    textbuffer.set_text(ssss)
+
+    scrolledwindow = Gtk.ScrolledWindow()
+    scrolledwindow.set_hexpand(True)
+    scrolledwindow.set_vexpand(True)
+    scrolledwindow.add(textview)
+    scrolledwindow.set_size_request(640, 480)
+
+    hhh = "\n          " \
+            "In general, any valid html can go here. Keep it simple.\n" \
+            "The editor already decorated this sufficiently, "\
+              "try to edit existing items in place.\n"
+
+    lll = Gtk.Label(hhh)
+    fd = Pango.FontDescription("Sans 9")
+    lll.override_font(fd)
+    thbox = Gtk.HBox()
+    thbox.pack_start(lll, 1, 1, 1)
+    dialog.vbox.pack_start(thbox, False, False, 0)
+    hbox = Gtk.HBox()
+    hbox.pack_start(Gtk.Label(" "), False, False, 0)
+    hbox.pack_start(scrolledwindow, 1, 1, 0)
+    hbox.pack_start(Gtk.Label(" "), False, False, 0)
+    dialog.vbox.pack_start(hbox, 1, 1, 0)
+    #dialog.vbox.pack_start(Gtk.Label(" "), False, False, 0)
+    dialog.show_all()
+
+    htmlx = ""
+    if dialog.run() == Gtk.ResponseType.OK:
+        bi = textbuffer.get_start_iter()
+        ei = textbuffer.get_end_iter()
+        htmlx = textbuffer.get_text(bi, ei, False)
+
+    dialog.destroy()
+
+    # Unwrap it
+    usss = ""
+    cnt = 0; fff = 0
+    for aa in htmlx:
+        if aa == '\n':
+            pass
+        else:
+            usss += aa
+    return usss
+
+def treecallb(ddd):
+    global sizex
+    #print("tree cb", ddd[0])
+    sizex = ddd[0]
+
+def sizedialog(sss):
+
+    dialog = Gtk.Dialog("   Select Font Size   ", None, 0,
+    (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK))
+
+    global sizex
+    sizex = ""
+    treedat = ["9", "10", "12", "14", "20", "24", "32", "48", "56", "64",
+                    "70", "96", "128"]
+
+    tree = SimpleTree(["Font Sizes"])
+    for aa in treedat:
+        tree.append((aa,))
+
+    def actcallb(ddd):
+        #print("Activate cb", ddd, dialog)
+        dialog.response(Gtk.ResponseType.OK)
+        #print("Activate cb2", ddd, dialog)
+
+    tree.setcallb(treecallb)
+    tree.setActcallb(actcallb)
+
+    hhh = "\n          " \
+            "In general, any valid html can go here. Keep it simple.\n" \
+            "The editor already decorated this sufficiently, "\
+              "try to edit existing items in place.\n"
+
+    lll = Gtk.Label(hhh)
+    fd = Pango.FontDescription("Sans 9")
+    lll.override_font(fd)
+    thbox = Gtk.HBox()
+    thbox.pack_start(lll, 1, 1, 1)
+    #dialog.vbox.pack_start(thbox, False, False, 0)
+
+    hbox = Gtk.HBox()
+    hbox.pack_start(Gtk.Label(" "), False, False, 0)
+    hbox.pack_start(tree, 1, 1, 0)
+    hbox.pack_start(Gtk.Label(" "), False, False, 0)
+    dialog.vbox.pack_start(hbox, 1, 1, 0)
+    #dialog.vbox.pack_start(Gtk.Label(" "), False, False, 0)
+    dialog.show_all()
+
+    if dialog.run() == Gtk.ResponseType.OK:
+        #print("ok", sizex)
+        pass
+    else:
+        sizex = 0
+
+    dialog.destroy()
+    return sizex
 
 # EOF

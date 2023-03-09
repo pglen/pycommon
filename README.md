@@ -4,27 +4,27 @@
 
  Just a sampler of what is in there (pasted from code, in no particular order):
 
-* class CairoHelper():
-* class TextTable(Gtk.Table):
-* class TextRow(Gtk.HBox):
-* class RadioGroup(Gtk.Frame):
-* class Led(Gtk.DrawingArea):
-* class SeparatorMenuItem(Gtk.SeparatorMenuItem):
-* class Menu():
-* class MenuButt(Gtk.DrawingArea):
-* class Lights(Gtk.Frame):
-* class WideButt(Gtk.Button):
-* class ScrollListBox(Gtk.Frame):
-* class TextRow(Gtk.HBox):
-* class RadioGroup(Gtk.Frame):
-* class Led(Gtk.DrawingArea):
-* class Lights(Gtk.Frame):
-* class FrameTextView(Gtk.TextView):
-* class Label(Gtk.Label):
-* class Logo(Gtk.VBox):
-* class xSpacer(Gtk.HBox):
-* class ScrollListBox(Gtk.Frame):
-* class ListBox(Gtk.TreeView):
+  * class CairoHelper():
+class TextTable(Gtk.Table):
+class TextRow(Gtk.HBox):
+class RadioGroup(Gtk.Frame):
+ * class Led(Gtk.DrawingArea):
+class SeparatorMenuItem(Gtk.SeparatorMenuItem):
+class Menu():
+class MenuButt(Gtk.DrawingArea):
+class Lights(Gtk.Frame):
+ *class WideButt(Gtk.Button):
+class ScrollListBox(Gtk.Frame):
+class TextRow(Gtk.HBox):
+class RadioGroup(Gtk.Frame):
+ * class Led(Gtk.DrawingArea):
+class Lights(Gtk.Frame):
+class FrameTextView(Gtk.TextView):
+class Label(Gtk.Label):
+ * class Logo(Gtk.VBox):
+class xSpacer(Gtk.HBox):
+class ScrollListBox(Gtk.Frame):
+class ListBox(Gtk.TreeView):
 
  ... and a lot more ...
 
