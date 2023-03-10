@@ -38,6 +38,10 @@ class  brow_win(Gtk.VBox):
         except:
             pass
 
+        # Label
+        bbb = Gtk.Button.new_with_mnemonic("_Hello")
+        self.pack_start(bbb, 0, 0, 0)
+
         hbox3 = self.urlbar()
         self.pack_start(hbox3, 0, 0, 0)
 
@@ -53,12 +57,10 @@ class  brow_win(Gtk.VBox):
             #sys.exit(1)
             raise
 
-        self.ui = pgwkit.generate_ui(self.webview)
-
         self.scroll_win.add(self.webview)
         self.webview.editor = self.webview
 
-        self.toolbar2 = self.ui.get_widget("/toolbar_format")
+        self.toolbar2 = self.webview.ui.get_widget("/toolbar_format")
         self.pack_start(self.toolbar2, False, False, 0)
 
         self.pack_start(self.scroll_win, 1, 1, 2)
@@ -73,6 +75,13 @@ class  brow_win(Gtk.VBox):
         self.set_status(" Idle State ")
 
         self.pack_start(hbox5, 0, 0, 2)
+
+        #self.add_events(Gdk.EventMask.ALL_EVENTS_MASK)
+        #self.set_sensitive(True)
+
+        # Receive key presses
+        self.set_can_focus(True)
+        #self.grab_focus()
 
     def url_callb(self, xtxt):
         self.webview.go(xtxt)

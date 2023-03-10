@@ -41,7 +41,7 @@ class zSpacer(Gtk.HBox):
 
 class   SimpleTree(Gtk.TreeView):
 
-    def __init__(self, head = [], editx = [], skipedit = 0):
+    def __init__(self, head = [], editx = [], skipedit = 0, xalign = 0.5):
 
         Gtk.TreeView.__init__(self)
 
@@ -67,6 +67,10 @@ class   SimpleTree(Gtk.TreeView):
         for aa in head:
             # Create a CellRendererText to render the data
             cell = Gtk.CellRendererText()
+            #cell.set_property("alignment", Pango.Alignment.CENTER)
+            #cell.set_property("align-set", True)
+            cell.set_property("xalign", xalign)
+
             if cnt > skipedit:
                 cell.set_property("editable", True)
                 cell.connect("edited", self.text_edited, cnt)

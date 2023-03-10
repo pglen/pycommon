@@ -379,4 +379,98 @@ class HtmlEditor(Gtk.Widget):
 #e.scroll.grab_focus()
 #Gtk.main()
 
+class   HtmlEdit(Gtk.VBox):
+
+    def __init__(self, editable = False, statsetter = None):
+
+        self.statsetter = statsetter
+        self.editable = editable
+
+        self._htmlx = pgwebw(editable)
+        self.ui = generate_ui(self._htmlx)
+        self.urlbar  = self.create_urlbar()
+        self.toolbar = self.ui.get_widget("/toolbar_format")
+        browse_scroll = Gtk.ScrolledWindow()
+        browse_scroll.add(self._htmlx)
+        self.pack_start(self.urlbar, False, False, 0)
+        self.pack_start(self.toolbar, False, False, 0)
+        self.pack_start(browse_scroll, 1, 1, 2)
+
+    def get_view(self):
+        return self._htmlx
+
+    def url_callb(self):
+        pass
+
+    def backurl(self, url, parm, buff):
+        self.webview.go_back()
+
+    def baseurl(self, url, parm, buff):
+        self.webview.load_uri("file://" + self.fname)
+
+    def forwurl(self, url, parm, buff):
+        self.webview.go_forward()
+
+    def go(self, xstr):
+        print("go", xstr)
+
+        if not len(xstr):
+            return
+
+        #  Leave known URL scemes alone
+        if xstr[:7] == "file://":
+            sss = os.path.realpath(xstr[7:])
+            xstr = "file://" + sss
+            pass
+        elif xstr[:7] == "http://":
+            pass
+        elif xstr[:8] == "https://":
+            pass
+        elif xstr[:6] == "ftp://":
+            pass
+        elif str.isdecimal(xstr[0]):
+            #print("Possible IP")
+            pass
+        else:
+            # Yeah, padd it
+            xstr = "https://" + xstr
+
+        self.webview.load_uri(xstr)
+
+    def url_callb(self, xtxt):
+        self.go(xtxt)
+
+
+    def gourl(self, url, parm, buff):
+        self.go(self.edit.get_text())
+
+    def create_urlbar(self):
+
+        self.edit = SimpleEdit();
+        self.edit.setsavecb(self.url_callb)
+        self.edit.single_line = True
+
+        hbox3 = Gtk.HBox()
+        uuu  = Gtk.Label("  URL:  ")
+        uuu.set_tooltip_text("Current / New URL; press Enter to go")
+        hbox3.pack_start(uuu, 0, 0, 0)
+        hbox3.pack_start(self.edit, True, True, 2)
+        bbb = LabelButt(" Go ", self.gourl, "Go to speified URL")
+        ccc = LabelButt(" <-Back  ", self.backurl, "Go Back")
+        ddd = LabelButt("  Forw-> ", self.forwurl, "Go Forw")
+        eee = LabelButt("   Base  ", self.baseurl, "Go to base URL")
+        hbox3.pack_start(Gtk.Label("  "), 0, 0, 0)
+        hbox3.pack_start(bbb, 0, 0, 0)
+        hbox3.pack_start(ccc, 0, 0, 0)
+        hbox3.pack_start(ddd, 0, 0, 0)
+        hbox3.pack_start(eee, 0, 0, 0)
+
+        hbox3.pack_start(Gtk.Label("  ^  "), 0, 0, 0)
+        hbox3.pack_start(Gtk.Label(" "), 0, 0, 0)
+
+        return hbox3
+
+
+
+
 # EOF
