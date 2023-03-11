@@ -21,7 +21,23 @@ from gi.repository import PangoCairo
 import cairo
 from sutil import *
 
-class smallbutt(Gtk.Widget):
+class smallbutt(Gtk.Button):
+
+    def __init__(self, labx, eventx = None, tooltip = None, *args, **kwds):
+        super().__init__(labx, *args, **kwds)
+        self.set_use_underline(True)
+        if tooltip:
+            self.set_tooltip_text(tooltip)
+        if eventx:
+            self.connect("clicked", eventx)
+        self.set_relief(Gtk.ReliefStyle.NONE)
+        font = "Sans 10"
+        self.override_font(Pango.FontDescription(font))
+
+
+# This is defunct, kept it here for good drawing code skeleton
+
+class smallbutt2(Gtk.Widget):
 
     __gsignals__ = {
       "xmnemonic-activate": (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE,
