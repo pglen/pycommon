@@ -76,6 +76,42 @@ except:
     present = 0
     raise
 
+#unmask_reserved =   Gdk.ModifierType.GDK_MODIFIER_RESERVED_13_MASK | \
+#                    Gdk.ModifierType.GDK_MODIFIER_RESERVED_14_MASK | \
+#                    Gdk.ModifierType.GDK_MODIFIER_RESERVED_15_MASK | \
+#                    Gdk.ModifierType.GDK_MODIFIER_RESERVED_16_MASK | \
+#                    Gdk.ModifierType.GDK_MODIFIER_RESERVED_17_MASK | \
+#                    Gdk.ModifierType.GDK_MODIFIER_RESERVED_18_MASK | \
+#                    Gdk.ModifierType.GDK_MODIFIER_RESERVED_19_MASK | \
+#                    Gdk.ModifierType.GDK_MODIFIER_RESERVED_20_MASK | \
+#                    Gdk.ModifierType.GDK_MODIFIER_RESERVED_21_MASK | \
+#                    Gdk.ModifierType.GDK_MODIFIER_RESERVED_22_MASK | \
+#                    Gdk.ModifierType.GDK_MODIFIER_RESERVED_23_MASK | \
+#                    Gdk.ModifierType.GDK_MODIFIER_RESERVED_24_MASK | \
+#                    Gdk.ModifierType.GDK_MODIFIER_RESERVED_25_MASK
+
+# These are not setting the modified flag
+
+navkeys = [   \
+                Gdk.KEY_Up,         Gdk.KEY_KP_Up,
+                Gdk.KEY_Down,       Gdk.KEY_KP_Down ,
+                Gdk.KEY_Left,       Gdk.KEY_KP_Left,
+                Gdk.KEY_Right,      Gdk.KEY_KP_Right,
+                Gdk.KEY_Page_Up,    Gdk.KEY_KP_Page_Up,
+                Gdk.KEY_Page_Down,  Gdk.KEY_KP_Page_Down,
+                Gdk.KEY_Home,       Gdk.KEY_KP_Home,
+                Gdk.KEY_End,        Gdk.KEY_KP_End,
+
+                # Also the modifier keys themselves
+                Gdk.KEY_Alt_L,      Gdk.KEY_Alt_R,
+                Gdk.KEY_Control_L,  Gdk.KEY_Control_R,
+                Gdk.KEY_Super_L,    Gdk.KEY_Super_R,
+                Gdk.KEY_Shift_L,    Gdk.KEY_Shift_R,
+
+          ]
+
+# ------------------------------------------------------------------------
+
 class pgwebw(WebKit2.WebView):
 
     ''' Define our override of the webkit class '''
@@ -92,16 +128,25 @@ class pgwebw(WebKit2.WebView):
         #if editable:
         #    self.set_editable(True)
 
-        self.filename = ""
+        self.fname = ""
         self.load_html("", "file:///")
         self.ui = self.generate_ui()
         self.connect("key-release-event",  self.keypress)
+        self.modified = False
+
+    def  _get_response_data_finish(self, resource, result, user_data=None):
+        self.old_html = resource.get_data_finish(result)
+        #print((self.old_html))
 
     def keypress(self, arg, arg2):
 
         ''' Here we imitate the way the accelerator works '''
 
-        #print("key", arg, arg2.get_state(), arg2.get_keyval())
+        state = arg2.get_state() & Gdk.ModifierType.MODIFIER_MASK
+        key = arg2.get_keyval()[1]
+        #print("key",  key, "state", state)
+
+        #GDK_MODIFIER_RESERVED_25_MASK
 
         # Feeding off the accelarator's definitions
         ag = self.ui.get_action_groups()[0]
@@ -111,15 +156,28 @@ class pgwebw(WebKit2.WebView):
         for aa in acts:
             if aa.accel:
                 #print(nnn, aa.accel, aa.accel_parsed)
-                if arg2.get_state() & aa.accel_parsed[1]:
+                if state == aa.accel_parsed[1]:
                     #print("state match")
-                    if arg2.get_keyval()[1] == aa.accel_parsed[0]:
+                    if key == aa.accel_parsed[0]:
                         print("Fire ", aa.get_name(), aa.get_label())
-                        lab = aa.get_label()
-                        # Many do not need a label
-                        aa.activate() #GLib.Variant.new_string(lab) )
-                        # invalidate
+                        #lab = aa.get_label()
+                        aa.activate()
                         break   # Only one accel the other is a mistake
+
+        # See if nav key
+        navkey = False
+        for aa in navkeys:
+            if key == aa:
+                print("Navkey", aa)
+                navkey = True
+        if not navkey:
+            # Exclude Ctrl-s
+            if state == Gdk.ModifierType.CONTROL_MASK and key == 115:
+                #print("Control s")
+                pass
+            else:
+                #print("set on key", key)
+                self.modified =  True
 
     def do_ready_to_show(self):
         print("do_ready_to_show() was called")
@@ -127,23 +185,36 @@ class pgwebw(WebKit2.WebView):
 
     def do_load_changed(self, status):
 
-        #print("do_load_changed() was called", status)
+        #print("do_load_changed()", status)
+        if status == WebKit2.LoadEvent.FINISHED:
+            ''' Create a shadow of content '''
+
+            # This gets it without spaces
+            #resource = self.get_main_resource()
+            #resource.get_data(None, self._get_response_data_finish, None)
+
+            # Get it by JS
+            def completion(html, user_data):
+                self.old_html = html
+            self.get_html(completion, '')
+
+
         if self.get_uri():
             if self.xlink:
-                self.xlink.status.set_text("Loading ... " + self.get_uri()[:64])
+                self.xlink.set_status("Loading ... " + self.get_uri()[:64])
 
         if status == 3: #WebKit2.LoadEvent.WEBKIT_LOAD_FINISHED:
             #print("got WEBKIT_LOAD_FINISHED")
             if self.get_uri():
                 if self.xlink:
                     self.xlink.edit.set_text(self.get_uri()[:64])
-                    self.xlink.status.set_text("Finished: " + self.get_uri()[:64])
+                    self.xlink.set_status("Finished: " + self.get_uri()[:64])
             self.grab_focus()
 
     def do_load_failed(self, load_event, failing_uri, error):
         print("do_load_failed() was called", failing_uri)
         if self.xlink:
-            self.xlink.status.set_text("Failed: " + failing_uri[:64])
+            self.xlink.set_status("Failed: " + failing_uri[:64])
 
     def on_action(self, action):
         #print("on_action", action.get_name())
@@ -243,14 +314,14 @@ class pgwebw(WebKit2.WebView):
         (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK))
 
         entry = Gtk.Entry()
-        dialog.vbox.pack_start(Gtk.Label(" a "), False, False, 0)
+        dialog.vbox.pack_start(Gtk.Label("  "), False, False, 0)
         hbox = Gtk.HBox()
-        hbox.pack_start(Gtk.Label(" x "), False, False, 0)
+        hbox.pack_start(Gtk.Label("  "), False, False, 0)
         hbox.pack_start(entry, False, False, 0)
-        hbox.pack_start(Gtk.Label(" y "), False, False, 0)
+        hbox.pack_start(Gtk.Label("  "), False, False, 0)
         dialog.vbox.pack_start(hbox, False, False, 0)
 
-        dialog.vbox.pack_start(Gtk.Label(" b "), False, False, 0)
+        dialog.vbox.pack_start(Gtk.Label("  "), False, False, 0)
         dialog.show_all()
 
         if dialog.run() == Gtk.ResponseType.OK:
@@ -276,7 +347,7 @@ class pgwebw(WebKit2.WebView):
         if dialog.run() == Gtk.ResponseType.OK:
             fn = dialog.get_filename()
             if os.path.exists(fn):
-                self.filename = fn
+                self.fname = fn
                 with open(fn) as fd:
                     self.load_html(fd.read(), "file:///")
         dialog.destroy()
@@ -284,10 +355,10 @@ class pgwebw(WebKit2.WebView):
     def on_save(self, action):
         def completion(html, user_data):
             open_mode = user_data
-            with open(self.filename, open_mode) as fd:
+            with open(self.fname, open_mode) as fd:
                 fd.write(html)
 
-        if self.filename:
+        if self.fname:
             self.get_html(completion, 'w')
         else:
             dialog = Gtk.FileChooserDialog("Select an HTML file", None,
@@ -296,8 +367,8 @@ class pgwebw(WebKit2.WebView):
                             Gtk.STOCK_SAVE, Gtk.ResponseType.OK))
 
             if dialog.run() == Gtk.ResponseType.OK:
-                self.filename = dialog.get_filename()
-                print("Saving", self.filename)
+                self.fname = dialog.get_filename()
+                print("Saving", self.fname)
                 self.get_html(completion, "w+")
             dialog.destroy()
 
@@ -309,12 +380,28 @@ class pgwebw(WebKit2.WebView):
             fin = self.run_javascript_finish(result)
             #print("fin", fin)
             html = fin.get_js_value().to_string()
-            #print("html", html, "\n")
+            #print("len html", len(html), "\n")
             completion_function(html, user_data)
-        self.run_javascript("document.title=document.documentElement.innerHTML;",
+        self.run_javascript("document.documentElement.innerHTML;",
                                    None,
                                    javascript_completion,
                                    user_data)
+
+    def get_lastmod(self, completion_function, user_data):
+
+        print("get_lastmod")
+        def javascript_completion(obj, result, user_data):
+            print("javascript_completion", result)
+            fin = self.run_javascript_finish(result)
+            #print("fin", fin)
+            html = fin.get_js_value().to_string()
+            print("lastmod", html, "\n")
+            #completion_function(html, user_data)
+        self.run_javascript("document.lastModified",
+                                   None,
+                                   javascript_completion,
+                                   user_data)
+
 
     def generate_ui(self):
 
@@ -345,11 +432,11 @@ class pgwebw(WebKit2.WebView):
     ("redo",        Gtk.STOCK_REDO, "_Redo", "<Control>y", "Redo Last Undo", self.on_action),
 
     ("removeformat", Gtk.STOCK_PROPERTIES, "_removeFormat", "<Control>M", "Remove Formatting", self.on_action),
-    ("bold",        Gtk.STOCK_BOLD, "_Bold", "<Control>", "Bold / UnBold Selection", self.on_action),
-    ("italic",      Gtk.STOCK_ITALIC, "_Italic", "<Control>", None, self.on_action),
-    ("underline",       Gtk.STOCK_UNDERLINE, "_Underline", "<Control>", None, self.on_action),
-    ("strikethrough", Gtk.STOCK_STRIKETHROUGH, "_Strike", "<Control>", None, self.on_action),
-    ("font",        Gtk.STOCK_SELECT_FONT, "Select _Font", "<Control>", None, self.on_select_font),
+    ("bold",        Gtk.STOCK_BOLD, "_Bold", "", "Bold / UnBold Selection", self.on_action),
+    ("italic",      Gtk.STOCK_ITALIC, "_Italic", "", None, self.on_action),
+    ("underline",       Gtk.STOCK_UNDERLINE, "_Underline", "", None, self.on_action),
+    ("strikethrough", Gtk.STOCK_STRIKETHROUGH, "_Strike", "", None, self.on_action),
+    ("font",        Gtk.STOCK_SELECT_FONT, "Select _Font", "", None, self.on_select_font),
     ("fontsize",    None, "Select _Font", "<Control>f", "Set Absolute Size (removes color)", self.on_fontsize),
     ("color",       Gtk.STOCK_SELECT_COLOR, "Select _Color", None, None, self.on_select_color),
     ("backgroundcolor", Gtk.STOCK_COLOR_PICKER, "Select Back Color", None, None, self.on_select_bgcolor),
@@ -411,8 +498,11 @@ class pgwebw(WebKit2.WebView):
 
                     setattr(aa, "accel", bbb[3])
                     if bbb[3]:
-                        nn, ss = Gtk.accelerator_parse(bbb[3])
-                        setattr(aa, "accel_parsed", (nn, ss))
+                        try:
+                            nn, ss = Gtk.accelerator_parse(bbb[3])
+                            setattr(aa, "accel_parsed", (nn, ss))
+                        except:
+                            pass
 
             # Pad it with capitalize name if not there
             if  not aa.get_tooltip():

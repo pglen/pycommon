@@ -13,7 +13,7 @@ from pgsimp import  *
 
 import gi
 gi.require_version("Gtk", "3.0")
-gi.require_version('WebKit2', '4.0')
+#gi.require_version('WebKit2', '4.0')
 
 from gi.repository import Gtk
 from gi.repository import Gdk
@@ -38,9 +38,9 @@ class  brow_win(Gtk.VBox):
         except:
             pass
 
-        # Label
-        bbb = Gtk.Button.new_with_mnemonic("_Hello")
-        self.pack_start(bbb, 0, 0, 0)
+        # TEST Mnemonic Label
+        #bbb = Gtk.Button.new_with_mnemonic("_Hello")
+        #self.pack_start(bbb, 0, 0, 0)
 
         hbox3 = self.urlbar()
         self.pack_start(hbox3, 0, 0, 0)
@@ -57,6 +57,7 @@ class  brow_win(Gtk.VBox):
             #sys.exit(1)
             raise
 
+        #self.old_html = ""
         self.scroll_win.add(self.webview)
         self.webview.editor = self.webview
 
@@ -83,6 +84,61 @@ class  brow_win(Gtk.VBox):
         self.set_can_focus(True)
         #self.grab_focus()
 
+    def open(self):
+        dialog = Gtk.FileChooserDialog("Open an HTML file", None,
+                Gtk.FileChooserAction.OPEN,
+                    (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                        Gtk.STOCK_SAVE, Gtk.ResponseType.OK))
+
+        ret = dialog.run()
+        fn = dialog.get_filename()
+        dialog.destroy()
+
+        if ret == Gtk.ResponseType.OK:
+            if not fn:
+                return
+            if os.path.exists(fn):
+                self.fname = fn
+                with open(fn) as fd:
+                    self.webview.load_html(fd.read(), "file:///")
+
+    def save(self):
+
+        #print("brow_win", "save", self.fname)
+        def completion(html, user_data):
+            #print("len html", len(html), len(self.webview.old_html) )
+            #print("html", html, "old", self.webview.old_html )
+            #if self.webview.old_html == html:
+
+            if not self.webview.modified:
+                self.set_status("File NOT modified.") # '%s'" % self.fname)
+            else:
+                #self.webview.old_html = html
+                open_mode = user_data
+                with open(self.fname, open_mode) as fd:
+                    fd.write(html)
+                self.set_status("Saved file '%s'" % self.fname)
+                self.webview.modified = False
+        self.webview.get_html(completion, 'w')
+
+    def saveas(self):
+        def completion(html, user_data):
+            open_mode = user_data
+            with open(self.fname, open_mode) as fd:
+                fd.write(html)
+            self.set_status("Saved as '%s'" % self.fname)
+
+        dialog = Gtk.FileChooserDialog("Select an HTML file", None,
+                Gtk.FileChooserAction.SAVE,
+                    (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                        Gtk.STOCK_SAVE, Gtk.ResponseType.OK))
+
+        if dialog.run() == Gtk.ResponseType.OK:
+            self.fname = dialog.get_filename()
+            #print("Saving", self.fname)
+            self.webview.get_html(completion, "w+")
+        dialog.destroy()
+
     def url_callb(self, xtxt):
         self.webview.go(xtxt)
 
@@ -96,9 +152,11 @@ class  brow_win(Gtk.VBox):
         self.webview.load_uri("file://" + self.fname)
 
     def forwurl(self, url, parm, buff):
-        self._win.webview.go_forward()
+        self.webview.go_forward()
 
-    def gourl(self, url, parm, buff):
+    #def gourl(self, url, parm, buff):
+    def gourl(self, *url):
+        print("gourl", *url)
         self.go(self.edit.get_text())
 
     def go(self, xstr):
@@ -122,10 +180,14 @@ class  brow_win(Gtk.VBox):
             # Yeah, padd it
             xstr = "https://" + xstr
 
-        self.brow_win.webview.load_uri(xstr)
+        self.webview.load_uri(xstr)
+
+    def stattime(self, *arg):
+        self.status.set_text("Idle.")
 
     def set_status(self, xtxt):
         self.status.set_text(xtxt)
+        GLib.timeout_add(3000, self.stattime, self, 0)
 
     def urlbar(self):
 
@@ -140,10 +202,14 @@ class  brow_win(Gtk.VBox):
 
         hbox3.pack_start(self.edit, True, True, 2)
 
-        bbb = LabelButt(" Go ", self.gourl, "Go to speified URL")
-        ccc = LabelButt(" <-Back  ", self.backurl, "Go Back")
-        ddd = LabelButt("  Forw-> ", self.forwurl, "Go Forw")
-        eee = LabelButt("   Base  ", self.baseurl, "Go to base URL")
+        bbb = LabelButt(" _Go ", self.gourl, "Go to speified URL")
+        #bbb = Gtk.Button.new_with_mnemonic(" _Go ") #, self.gourl, "Go to speified URL")
+        #bbb.connect("clicked", self.gourl)
+
+        #bbb = LabelButt(" _Go ", self.gourl, "Go to speified URL")
+        ccc = LabelButt(" <-_Back  ", self.backurl, "Go Back")
+        ddd = LabelButt("  For_w-> ", self.forwurl, "Go Forw")
+        eee = LabelButt("   B_ase  ", self.baseurl, "Go to base URL")
 
         hbox3.pack_start(Gtk.Label("  "), 0, 0, 0)
 
@@ -152,7 +218,7 @@ class  brow_win(Gtk.VBox):
         hbox3.pack_start(ddd, 0, 0, 0)
         hbox3.pack_start(eee, 0, 0, 0)
 
-        hbox3.pack_start(Gtk.Label("  ^  "), 0, 0, 0)
+        #hbox3.pack_start(Gtk.Label("  ^  "), 0, 0, 0)
         hbox3.pack_start(Gtk.Label(" "), 0, 0, 0)
 
         return hbox3
