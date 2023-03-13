@@ -81,7 +81,7 @@ class testWin(Gtk.Window):
 
         vbox13.pack_start(hbox13, 0, 0, 0)
         vbox13.pack_start(hbox16, 0, 0, 0)
-        vbox13.pack_start(hbox15, 0, 0, 0)
+        #vbox13.pack_start(hbox15, 0, 0, 0)
         vbox13.pack_start(hbox14, 0, 0, 0)
         vbox13.pack_start(vspacer(), 1, 1, 0)
 
