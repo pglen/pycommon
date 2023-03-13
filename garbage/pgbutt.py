@@ -21,28 +21,16 @@ from gi.repository import PangoCairo
 import cairo
 from sutil import *
 
-class smallbutt(Gtk.EventBox):
-
-    __gsignals__ = {
-    #"activate": (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, () ),
-    "pressed": (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, () ),
-    }
+class smallbutt(Gtk.Button):
 
     def __init__(self, labx, eventx = None, tooltip = None, *args, **kwds):
-        super().__init__(*args, **kwds)
+        super().__init__(labx, *args, **kwds)
 
         self.state = 0; self.stat2 = 0
         self.labx = labx;  self.orgtext = ""
         self.accel = "";  self.agroup = None
         self.mark = -1;
         self.mnem = self.omnem = 0
-        self.lab = Gtk.Label.new_with_mnemonic(labx)
-        self.add(self.lab)
-        self.set_above_child(True)
-
-        self.arrow  =  Gdk.Cursor(Gdk.CursorType.ARROW)
-        self.hand   =  Gdk.Cursor(Gdk.CursorType.HAND1)
-        self.down   = 0
 
         cnt = 0;
         # Process ACCEL Key
@@ -55,26 +43,17 @@ class smallbutt(Gtk.EventBox):
                 self.orgtext += aa
             cnt += 1
 
-        #self.set_mnemonic_widget(self)
-        #self.set_use_underline(True)
+        self.set_use_underline(True)
         if tooltip:
-            self.lab.set_tooltip_text(tooltip)
-
+            self.set_tooltip_text(tooltip)
         if eventx:
-            self.connect("pressed", eventx)
-
-        self.set_can_focus(True)
-        self.set_can_default(True)
-        self.set_sensitive(True)
-
+            self.connect("clicked", eventx)
+        self.set_relief(Gtk.ReliefStyle.NONE)
         font = "Sans 10"
         self.override_font(Pango.FontDescription(font))
+        self.set_border_width(0)
+        self.set_padding(0)
 
-        #self.set_alignment(0.5, 0.5)
-        #self.set_margin_left(0)
-        #self.set_margin_right(0)
-        #self.set_margin_top(0)
-        #self.set_margin_bottom(0)
 
         self.layoutx = self.create_pango_layout("a")
         self.layoutx.set_font_description(Pango.FontDescription(font))
@@ -98,38 +77,11 @@ class smallbutt(Gtk.EventBox):
 
         self.connect("enter_notify_event", self.enter_label)
         self.connect("leave_notify_event", self.leave_label)
-        self.connect("mnemonic-activate", self.mactivate)
-        self.connect("button-release-event", self.buttrel)
-        self.connect("button-press-event", self.buttpress)
-        self.connect("key-release-event", self.keyrel)
-        self.connect("key-press-event", self.keypress)
+        #self.connect("mnemonic-activate", self.mactivate)
+        #self.connect("event", self.eventx)
 
         self.show_all()
         GLib.timeout_add(1000, self.stattime, self, 0)
-
-    def keyrel(self, *args):
-        #print("keyrel")
-        if args[1].keyval == Gdk.KEY_space or args[1].keyval == Gdk.KEY_Return :
-            self.down = 0
-            self.queue_draw()
-            self.emit('pressed')
-
-    def keypress(self, *args):
-        #print("keypress")
-        if args[1].keyval == Gdk.KEY_space or args[1].keyval == Gdk.KEY_Return :
-            self.down = 1
-            self.queue_draw()
-
-    def buttrel(self, *args):
-        #print("buttrel")
-        self.down = 0
-        self.queue_draw()
-        self.emit('pressed')
-
-    def buttpress(self, *args):
-       # print("buttpress")
-        self.down = 1
-        self.queue_draw()
 
     def mactivate(self):
         print("mactivate")
@@ -153,9 +105,10 @@ class smallbutt(Gtk.EventBox):
         GLib.timeout_add(1000, self.stattime, self, 0)
 
     def mactivate(self, *arg):
-        #print("mactivate", arg)
-        self.emit('pressed')
-        return True
+        print("mactivate", arg)
+
+    def eventx(self, *args):
+        print("eventx", args)
 
     def enter_label(self, arg, arg2):
         #print("Enter")
@@ -195,10 +148,6 @@ class smallbutt(Gtk.EventBox):
         cr.set_source_rgba(*list(fg_color));
         cr.move_to(0, 0)
         PangoCairo.show_layout(cr, self.layout)
-        if self.down:
-            cr.move_to(1, 1)
-            PangoCairo.show_layout(cr, self.layout)
-
 
         if self.mnem:
             #print("corr", self.chary.width, self.chary.height)
