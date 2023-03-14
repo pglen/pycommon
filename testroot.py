@@ -34,6 +34,44 @@ def vspacer(sp = 8):
 #    lab.set_size_request(sp, sp)
     return lab
 
+class pop_win():
+
+    def __init__(self):
+        popup = Gtk.Window.new( Gtk.WindowType.TOPLEVEL)
+        #popup = Gtk.Window.new( Gtk.WindowType.POPUP)
+        popup.set_title("Hello")
+
+        popup.set_resizable(True)
+        #popup.set_transient_for(self)
+
+        #hb = Gtk.HeaderBar()
+        #hb.set_decoration_layout(None)
+        #hb.set_title("No title")
+        #hb.set_border_width(0)
+        #hb.set_size_request(-1, 10)
+        #hb.set_show_close_button(True)
+
+        popup.set_default_size(200, 300)
+        Gtk.Label.new("Titlebar")
+        popup.set_decorated(True)
+        popup.set_skip_pager_hint(True)
+        popup.set_skip_taskbar_hint(True)
+        popup.set_type_hint(Gdk.WindowTypeHint.TOOLBAR)
+
+        self.popup = popup
+        popup.add(Gtk.Label.new("Hello"))
+        popup.connect("unmap", self.dest)
+        popup.show_all()
+
+    def post(self):
+        xx, yy = self.popup.get_position()
+        xx += random.randint(-xx//2, xx//2)
+        yy += random.randint(-yy//2, yy//2)
+        self.popup.move(xx, yy)
+
+    def dest(self):
+        print("dest")
+
 class testWin(Gtk.Window):
 
     def __init__(self, *args, **kwargs):
@@ -46,35 +84,12 @@ class testWin(Gtk.Window):
         #vbox13.pack_start(vspacer(), 0, 0, 0)
         vbox13.pack_start(Gtk.Label.new("  Test root entry window implementation  "), 1, 1, 0)
 
-        popup = Gtk.Window.new( Gtk.WindowType.TOPLEVEL)
-        #popup = Gtk.Window.new( Gtk.WindowType.POPUP)
-        popup.set_title("Hello")
-
-        popup.set_resizable(True)
-        popup.set_transient_for(self)
-
-        hb = Gtk.HeaderBar()
-        hb.set_decoration_layout(None)
-        hb.set_title("No title")
-        hb.set_border_width(0)
-
-        hb.set_size_request(-1, 10)
-        #hb.set_show_close_button(True)
-
-        popup.set_default_size(200, 300)
-        Gtk.Label.new("Titlebar")
-        popup.set_decorated(True)
-        popup.set_skip_pager_hint(True)
-        popup.set_skip_taskbar_hint(True)
-        popup.set_type_hint(Gdk.WindowTypeHint.TOOLBAR)
-
-
         #popup.set_titlebar(Gtk.Button())
         #popup.set_titlebar(hb)
 
-        popup.add(Gtk.Label.new("Hello"))
-        popup.show_all()
-
+        self.arr = []
+        for aa in range(3):
+            self.arr.append(pop_win())
         vbox13.pack_start(vspacer(), 1, 1, 0)
 
         hbox14 = Gtk.HBox()
@@ -89,6 +104,9 @@ class testWin(Gtk.Window):
         self.set_size_request(300, 200)
         self.add(vbox13)
         self.show_all()
+
+        for bb in self.arr:
+            bb.post()
 
         # Gtk.Label
         #print("children", butt3x.get_children())
