@@ -14,8 +14,19 @@ from gi.repository import Pango
 gi.require_version('WebKit2', '4.0')
 from gi.repository import WebKit2
 
+
 from pgbutt import *
 from pggui import *
+
+#sys.path.append("..")
+#from pydbase import twincore
+
+sys.path.append("../pybase")
+import pydbase
+
+print(dir(pydbase))
+
+#print(dir(pydbase.__package__))
 
 def vspacer(sp = 8):
     #ab = Gtk.Label.new(" ")
@@ -28,18 +39,16 @@ def vspacer(sp = 8):
     #                Gtk.StateFlags.NORMAL, Gdk.RGBA(1, .5, .5) )
     return lab
 
-#def spacer(sp = 4):
-#    #ab = Gtk.Label.new(" ")
-#    lab = Gtk.HBox()
-#    lab.set_size_request(sp, sp)
-    return lab
+class PopWin():
 
-class pop_win():
-
-    def __init__(self):
+    def __init__(self, randx = 0):
         popup = Gtk.Window.new( Gtk.WindowType.TOPLEVEL)
         #popup = Gtk.Window.new( Gtk.WindowType.POPUP)
         popup.set_title("Hello")
+
+        self.randx = randx
+        if not self.randx:
+            self.randx = random.randint(1, 0xffffffff)
 
         popup.set_resizable(True)
         #popup.set_transient_for(self)
@@ -59,25 +68,44 @@ class pop_win():
         popup.set_type_hint(Gdk.WindowTypeHint.TOOLBAR)
 
         self.popup = popup
-        popup.add(Gtk.Label.new("Hello"))
-        popup.connect("unmap", self.dest)
+        self.label = Gtk.Label.new("Hello")
+        #print("lab", self.popup.get_toplevel())
+        popup.add(self.label)
+        popup.connect("delete-event", self.deletevent)
         popup.show_all()
+
+    def deletevent(self, arg, arg2):
+        #print("deletevent called", arg, arg2)
+        self.savepos()
 
     def post(self):
         xx, yy = self.popup.get_position()
-        xx += random.randint(-xx//2, xx//2)
-        yy += random.randint(-yy//2, yy//2)
+        #xx += random.randint(-xx//2, xx//2)
+        #xx += random.randint(-xx//2, xx//2)
+        yy += random.randint(-300, 300)
+        xx += random.randint(-200, 200)
         self.popup.move(xx, yy)
+        #print("lab", self.popup.get_toplevel())
+        #print("att", self.popup.props.decorated)
+        #print("def", self.popup.get_default_widget())
 
     def dest(self):
-        print("dest")
+        self.savepos()
+        self.popup.destroy()
+
+    def savepos(self):
+        #core = TwinCore()
+        tl = self.popup.get_toplevel()
+        xx, yy = tl.get_position()
+        print("dest xx",  xx, "yy", yy, hex(self.randx))
+
 
 class testWin(Gtk.Window):
 
     def __init__(self, *args, **kwargs):
         super(testWin, self).__init__(*args, **kwargs)
 
-        self.connect("destroy", Gtk.main_quit)
+        self.connect("destroy", self.dest)
 
         vbox13 = Gtk.VBox()
 
@@ -89,7 +117,7 @@ class testWin(Gtk.Window):
 
         self.arr = []
         for aa in range(3):
-            self.arr.append(pop_win())
+            self.arr.append(PopWin())
         vbox13.pack_start(vspacer(), 1, 1, 0)
 
         hbox14 = Gtk.HBox()
@@ -110,6 +138,11 @@ class testWin(Gtk.Window):
 
         # Gtk.Label
         #print("children", butt3x.get_children())
+
+    def dest(self, win):
+        for aa in self.arr:
+            aa.dest()
+        Gtk.main_quit()
 
     def regbutt(self, arg):
         print("regbutt pressed", arg)
