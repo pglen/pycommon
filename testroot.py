@@ -11,33 +11,23 @@ from gi.repository import GLib
 from gi.repository import GObject
 from gi.repository import Pango
 
-gi.require_version('WebKit2', '4.0')
-from gi.repository import WebKit2
-
+#gi.require_version('WebKit2', '4.0')
+#from gi.repository import WebKit2
 
 from pgbutt import *
 from pggui import *
 
-#sys.path.append("..")
-#from pydbase import twincore
+# Allow the core to search pydbase
+#fff = os.path.realpath(os.path.dirname(__file__) + os.sep + "../pydbase/")
+fff =  "../pydbase/"
+#print(fff)
 
-sys.path.append("../pybase")
-import pydbase
+sys.path.append(fff)
+from  pydbase import twincore
+#from  pydbase.twincore import *
 
-print(dir(pydbase))
-
-#print(dir(pydbase.__package__))
-
-def vspacer(sp = 8):
-    #ab = Gtk.Label.new(" ")
-    lab = Gtk.VBox()
-    #fff = Gtk.Frame()
-    #fff.set_size_request(sp, sp)
-    #lab.pack_start(fff, 0, 0, 0)
-    lab.set_size_request(sp, sp)
-    #lab.override_background_color(
-    #                Gtk.StateFlags.NORMAL, Gdk.RGBA(1, .5, .5) )
-    return lab
+#print( dir() )
+#print(dir(twincore))
 
 class PopWin():
 
@@ -73,6 +63,8 @@ class PopWin():
         popup.add(self.label)
         popup.connect("delete-event", self.deletevent)
         popup.show_all()
+        core = twincore.TwinCore()
+
 
     def deletevent(self, arg, arg2):
         #print("deletevent called", arg, arg2)
@@ -94,7 +86,6 @@ class PopWin():
         self.popup.destroy()
 
     def savepos(self):
-        #core = TwinCore()
         tl = self.popup.get_toplevel()
         xx, yy = tl.get_position()
         print("dest xx",  xx, "yy", yy, hex(self.randx))
